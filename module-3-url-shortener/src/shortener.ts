@@ -1,31 +1,48 @@
-// URL Shortener Module
-//
-// TODO: Use Claude Code with TDD to build this!
-//
-// Requirements:
-// 1. Accept a valid URL and return a 6-character short code
-// 2. Reject invalid URLs with an error
-// 3. Retrieve the original URL by short code
-// 4. Return the same short code for the same URL (idempotent)
-// 5. Handle edge cases: empty string, null, very long URLs (up to 2048 chars)
-//
-// TDD Workflow:
-// Step 1: Ask Claude to write tests FIRST (src/shortener.test.ts)
-// Step 2: Run tests — they should all FAIL (RED)
-// Step 3: Ask Claude to implement this module to pass the tests (GREEN)
-// Step 4: Ask Claude to refactor (REFACTOR) — keep tests passing
-//
-// Example usage:
-//   const code = shorten("https://example.com/very/long/path");
-//   // Returns: "aB3xY9"
-//
-//   const url = resolve("aB3xY9");
-//   // Returns: "https://example.com/very/long/path"
+import { customAlphabet } from "nanoid";
 
-export function shorten(url: string): string {
-  throw new Error("Not implemented — write tests first!");
+const generateCode = customAlphabet(
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+);
+
+const codeToUrl = new Map<string, string>();
+const urlToCode = new Map<string, string>();
+
+function validate(url: string): void {
+  if (url == null || typeof url !== "string") {
+    throw new Error("URL must be a string");
+  }
+  if (url.trim().length === 0) {
+    throw new Error("URL must not be empty or whitespace");
+  }
+  if (url.length > 2048) {
+    throw new Error("URL must not exceed 2048 characters");
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`Invalid URL: ${url}`);
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`Unsupported protocol: ${parsed.protocol}`);
+  }
+  if (!parsed.hostname) {
+    throw new Error("URL must have a hostname");
+  }
+}
+
+export function shorten(url: string, codeLength = 6): string {
+  validate(url);
+  const existing = urlToCode.get(url);
+  if (existing !== undefined) return existing;
+  const code = generateCode(codeLength);
+  codeToUrl.set(code, url);
+  urlToCode.set(url, code);
+  return code;
 }
 
 export function resolve(code: string): string | null {
-  throw new Error("Not implemented — write tests first!");
+  return codeToUrl.get(code) ?? null;
 }
