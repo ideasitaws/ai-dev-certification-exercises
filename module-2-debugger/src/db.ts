@@ -79,8 +79,8 @@ export function getUserWithPostCount(userId: number) {
 
   // Count posts for this user
   const countResult = db
-    .prepare("SELECT COUNT(*) as count FROM posts")
-    .get() as any;
+    .prepare("SELECT COUNT(*) as count FROM posts WHERE authorId = ?")
+    .get(userId) as any;
 
   return {
     ...user,
@@ -88,19 +88,20 @@ export function getUserWithPostCount(userId: number) {
   };
 }
 
-// BUG #3: N+1 performance — this is slow with many posts
 export function getAllPostsWithAuthors() {
   const db = getDb();
-  const posts = db.prepare("SELECT * FROM posts ORDER BY createdAt DESC").all() as any[];
+  const rows = db.prepare(`
+    SELECT p.*, u.id as userId, u.name as userName
+    FROM posts p
+    LEFT JOIN users u ON p.authorId = u.id
+    ORDER BY p.createdAt DESC
+  `).all() as any[];
 
-  // Get author for each post individually
-  return posts.map((post) => {
-    const author = db
-      .prepare("SELECT * FROM users WHERE id = ?")
-      .get(post.authorId) as any;
+  return rows.map((row) => {
+    const { userId, userName, ...post } = row;
     return {
       ...post,
-      author: author ? { id: author.id, name: author.name } : null,
+      author: userId ? { id: userId, name: userName } : null,
     };
   });
 }

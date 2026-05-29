@@ -2,9 +2,10 @@ import { getDb } from "./db";
 
 const db = getDb();
 
-// Clear existing data
+// Clear existing data and reset autoincrement counters
 db.exec("DELETE FROM posts");
 db.exec("DELETE FROM users");
+db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'posts')");
 
 // Seed users
 const insertUser = db.prepare(
